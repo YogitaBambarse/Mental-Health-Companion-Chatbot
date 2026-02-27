@@ -18,3 +18,95 @@ st.markdown("""
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+h1, h2, h3 {
+    color: white;
+}
+
+.stButton>button {
+    background: linear-gradient(45deg, #ff6ec4, #7873f5);
+    color: white;
+    border-radius: 12px;
+    border: none;
+    padding: 10px 25px;
+    font-weight: bold;
+}
+
+.stFileUploader {
+    background: rgba(255,255,255,0.1);
+    padding: 15px;
+    border-radius: 15px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ---------- TITLE ----------
+st.markdown("<h1 style='text-align:center;'>🤖 AI Health Companion</h1>", unsafe_allow_html=True)
+
+# ---------- SIDEBAR ----------
+st.sidebar.markdown("## 👤 User Profile")
+
+weight = st.sidebar.number_input("Weight (kg)", 40, 150, 60)
+height = st.sidebar.number_input("Height (cm)", 140, 200, 165)
+age = st.sidebar.number_input("Age", 15, 80, 22)
+
+medical = st.sidebar.text_area("Medical Conditions", "Low BP")
+fitness = st.sidebar.text_area("Fitness Routine", "30 min workout")
+food_pref = st.sidebar.text_area("Food Preferences", "Veg")
+diet_restrict = st.sidebar.text_area("Dietary Restrictions", "No paneer")
+
+# ---------- BMI ----------
+bmi = weight / ((height/100)**2)
+
+if bmi < 18.5:
+    category = "Underweight"
+elif 18.5 <= bmi < 24.9:
+    category = "Normal"
+elif 25 <= bmi < 29.9:
+    category = "Overweight"
+else:
+    category = "Obese"
+
+st.sidebar.success(f"BMI: {round(bmi,2)} ({category})")
+
+# ---------- TABS ----------
+tab1, tab2, tab3 = st.tabs(["🍽 Meal Plan", "📸 Food Analysis", "📊 Insights"])
+
+# ---------- MEAL PLAN ----------
+with tab1:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("Personalized Daily Calories")
+    calories = 22 * weight
+    st.markdown(f"### 🔥 {calories} kcal/day")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------- FOOD ANALYSIS ----------
+with tab2:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("Upload Food Image")
+    uploaded_file = st.file_uploader("Choose Image", type=["jpg","jpeg","png"])
+
+    if uploaded_file:
+        image = Image.open(uploaded_file)
+        st.image(image, use_column_width=True)
+        st.success("✨ AI Analysis Ready (Gemini logic add karaycha aahe)")
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------- INSIGHTS ----------
+with tab3:
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    st.subheader("Health Overview")
+    st.write(f"Age: {age}")
+    st.write(f"Medical Condition: {medical}")
+    st.write(f"Fitness Routine: {fitness}")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+# ---------- FOOTER ----------
+st.markdown("<br><center>💜 Built with Streamlit | Modern Glass UI</center>", unsafe_allow_html=True)
