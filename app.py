@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 import os
 import json
@@ -83,69 +83,44 @@ st.sidebar.success(f"BMI: {round(bmi,2)}")
 tabs = st.tabs(["🍽 Daily Plan", "📅 Weekly Plan", "📊 Calorie Chart", "📜 History"])
 
 # ---------------- DAILY PLAN ----------------
-with tabs[0]:
-    if st.button("Generate Daily AI Plan"):
-        if api_key:
-            try:
-                prompt = f"""
-                Create a detailed one-day Indian meal plan.
+if api_key:
+    try:
+        client = genai.Client(api_key=api_key)
 
-                Age: {age}
-                Weight: {weight} kg
-                Height: {height} cm
-                BMI: {round(bmi,2)}
-                Medical Conditions: {medical}
-                Food Preferences: {food_pref}
-                Dietary Restrictions: {diet_restrict}
-                Target Calories: {round(calories)}
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
 
-                Include:
-                - Breakfast
-                - Lunch
-                - Snacks
-                - Dinner
-                - Calories per meal
-                - Health tips
-                """
+        st.success("AI Plan Generated ✅")
+        st.write(response.text)
 
-                model = genai.GenerativeModel("gemini-pro")
-                response = model.generate_content(prompt)
+        users[st.session_state.username]["history"].append(response.text)
+        save_users(users)
 
-                st.success("AI Plan Generated ✅")
-                st.write(response.text)
-
-                users[st.session_state.username]["history"].append(response.text)
-                save_users(users)
-
-            except Exception as e:
-                st.error("AI Error")
-                st.write(str(e))
-        else:
-            st.error("API Key not configured in Streamlit Secrets.")
+    except Exception as e:
+        st.error("AI Error")
+        st.write(str(e))
 
 # ---------------- WEEKLY PLAN ----------------
-with tabs[1]:
-    if st.button("Generate Weekly AI Plan"):
-        if api_key:
-            try:
-                prompt = f"""
-                Create a structured 7-day Indian meal plan.
-                Calories Target: {round(calories)}
-                Preferences: {food_pref}
-                Restrictions: {diet_restrict}
-                """
+if api_key:
+    try:
+        client = genai.Client(api_key=api_key)
 
-                model = genai.GenerativeModel("gemini-pro")
-                response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
+        )
 
-                st.success("Weekly Plan Generated ✅")
-                st.write(response.text)
+        st.success("AI Plan Generated ✅")
+        st.write(response.text)
 
-            except Exception as e:
-                st.error("AI Error")
-                st.write(str(e))
-        else:
-            st.error("API Key not configured.")
+        users[st.session_state.username]["history"].append(response.text)
+        save_users(users)
+
+    except Exception as e:
+        st.error("AI Error")
+        st.write(str(e))
 
 # ---------------- CALORIE CHART ----------------
 with tabs[2]:
