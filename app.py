@@ -108,7 +108,7 @@ with tabs[0]:
                 - Health tips
                 """
 
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-pro")
                 response = model.generate_content(prompt)
 
                 st.success("AI Plan Generated ✅")
@@ -135,7 +135,7 @@ with tabs[1]:
                 Restrictions: {diet_restrict}
                 """
 
-                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                model = genai.GenerativeModel("gemini-pro")
                 response = model.generate_content(prompt)
 
                 st.success("Weekly Plan Generated ✅")
