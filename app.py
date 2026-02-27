@@ -4,17 +4,13 @@ from dotenv import load_dotenv
 import os
 import json
 import matplotlib.pyplot as plt
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-import tempfile
+
+# ---------------- PAGE CONFIG ----------------
+st.set_page_config(page_title="AI Health Companion", layout="wide")
 
 # ---------------- ENV ----------------
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
-
-if api_key:
-    genai.configure(api_key=api_key)
 
 # ---------------- USER STORAGE ----------------
 USER_FILE = "users.json"
@@ -62,7 +58,6 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ---------------- MAIN APP ----------------
-st.set_page_config(page_title="AI Health Companion", layout="wide")
 st.title("🤖 AI Health Companion")
 
 st.sidebar.header("User Details")
@@ -79,48 +74,85 @@ bmi = weight / ((height/100)**2)
 calories = 22 * weight
 
 st.sidebar.success(f"BMI: {round(bmi,2)}")
+st.sidebar.info(f"Estimated Calories: {int(calories)} kcal")
 
 tabs = st.tabs(["🍽 Daily Plan", "📅 Weekly Plan", "📊 Calorie Chart", "📜 History"])
 
 # ---------------- DAILY PLAN ----------------
-if api_key:
-    try:
-        client = genai.Client(api_key=api_key)
+with tabs[0]:
+    st.subheader("Generate Daily Meal Plan")
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
+    if st.button("Generate Daily Plan"):
+        if not api_key:
+            st.error("API Key not found")
+        else:
+            try:
+                client = genai.Client(api_key=api_key)
 
-        st.success("AI Plan Generated ✅")
-        st.write(response.text)
+                prompt = f"""
+                Create a personalized daily Indian diet plan.
+                Age: {age}
+                Weight: {weight} kg
+                Height: {height} cm
+                BMI: {round(bmi,2)}
+                Medical Conditions: {medical}
+                Food Preference: {food_pref}
+                Dietary Restrictions: {diet_restrict}
+                Target Calories: {calories}
+                """
 
-        users[st.session_state.username]["history"].append(response.text)
-        save_users(users)
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt
+                )
 
-    except Exception as e:
-        st.error("AI Error")
-        st.write(str(e))
+                st.success("AI Plan Generated ✅")
+                st.write(response.text)
+
+                users[st.session_state.username]["history"].append(response.text)
+                save_users(users)
+
+            except Exception as e:
+                st.error("AI Error")
+                st.write(str(e))
 
 # ---------------- WEEKLY PLAN ----------------
-if api_key:
-    try:
-        client = genai.Client(api_key=api_key)
+with tabs[1]:
+    st.subheader("Generate Weekly Meal Plan")
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt
-        )
+    if st.button("Generate Weekly Plan"):
+        if not api_key:
+            st.error("API Key not found")
+        else:
+            try:
+                client = genai.Client(api_key=api_key)
 
-        st.success("AI Plan Generated ✅")
-        st.write(response.text)
+                prompt = f"""
+                Create a personalized 7-day Indian diet plan.
+                Age: {age}
+                Weight: {weight} kg
+                Height: {height} cm
+                BMI: {round(bmi,2)}
+                Medical Conditions: {medical}
+                Food Preference: {food_pref}
+                Dietary Restrictions: {diet_restrict}
+                Target Calories: {calories}
+                """
 
-        users[st.session_state.username]["history"].append(response.text)
-        save_users(users)
+                response = client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=prompt
+                )
 
-    except Exception as e:
-        st.error("AI Error")
-        st.write(str(e))
+                st.success("AI Weekly Plan Generated ✅")
+                st.write(response.text)
+
+                users[st.session_state.username]["history"].append(response.text)
+                save_users(users)
+
+            except Exception as e:
+                st.error("AI Error")
+                st.write(str(e))
 
 # ---------------- CALORIE CHART ----------------
 with tabs[2]:
