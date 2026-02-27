@@ -1,5 +1,4 @@
 import streamlit as st
-from PIL import Image
 import google.generativeai as genai
 from dotenv import load_dotenv
 import os
@@ -13,10 +12,11 @@ import tempfile
 # ---------------- ENV ----------------
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+
 if api_key:
     genai.configure(api_key=api_key)
 
-# ---------------- BASIC LOGIN SYSTEM ----------------
+# ---------------- USER STORAGE ----------------
 USER_FILE = "users.json"
 
 def load_users():
@@ -31,29 +31,33 @@ def save_users(users):
 
 users = load_users()
 
+# ---------------- LOGIN SYSTEM ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     st.title("🔐 Login / Register")
 
-    choice = st.radio("Select Option", ["Login", "Register"])
+    option = st.radio("Select Option", ["Login", "Register"])
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
     if st.button("Submit"):
-        if choice == "Register":
-            users[username] = {"password": password, "history": []}
-            save_users(users)
-            st.success("Registered Successfully! Please login.")
+        if option == "Register":
+            if username not in users:
+                users[username] = {"password": password, "history": []}
+                save_users(users)
+                st.success("Registered successfully! Please login.")
+            else:
+                st.warning("Username already exists.")
         else:
             if username in users and users[username]["password"] == password:
                 st.session_state.logged_in = True
                 st.session_state.username = username
-                st.success("Login Successful")
+                st.success("Login successful!")
                 st.rerun()
             else:
-                st.error("Invalid Credentials")
+                st.error("Invalid credentials")
 
     st.stop()
 
@@ -61,7 +65,8 @@ if not st.session_state.logged_in:
 st.set_page_config(page_title="AI Health Companion", layout="wide")
 st.title("🤖 AI Health Companion")
 
-# Sidebar
+st.sidebar.header("User Details")
+
 weight = st.sidebar.number_input("Weight (kg)", 30, 150, 60)
 height = st.sidebar.number_input("Height (cm)", 120, 210, 165)
 age = st.sidebar.number_input("Age", 10, 80, 22)
@@ -73,40 +78,78 @@ diet_restrict = st.sidebar.text_area("Dietary Restrictions", "None")
 bmi = weight / ((height/100)**2)
 calories = 22 * weight
 
-# Tabs
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["🍽 AI Meal Plan", "📊 Calorie Chart", "📅 Weekly Planner", "📜 History"]
-)
+st.sidebar.success(f"BMI: {round(bmi,2)}")
 
-# ---------------- AI MEAL PLAN ----------------
-with tab1:
-    if st.button("Generate AI Meal Plan"):
+tabs = st.tabs(["🍽 Daily Plan", "📅 Weekly Plan", "📊 Calorie Chart", "📜 History"])
+
+# ---------------- DAILY PLAN ----------------
+with tabs[0]:
+    if st.button("Generate Daily AI Plan"):
         if api_key:
-            prompt = f"""
-            Create a detailed one-day Indian meal plan.
-            Age: {age}
-            Weight: {weight}
-            BMI: {round(bmi,2)}
-            Medical Conditions: {medical}
-            Food Preferences: {food_pref}
-            Dietary Restrictions: {diet_restrict}
-            Calories Target: {round(calories)}
-            """
+            try:
+                prompt = f"""
+                Create a detailed one-day Indian meal plan.
 
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
+                Age: {age}
+                Weight: {weight} kg
+                Height: {height} cm
+                BMI: {round(bmi,2)}
+                Medical Conditions: {medical}
+                Food Preferences: {food_pref}
+                Dietary Restrictions: {diet_restrict}
+                Target Calories: {round(calories)}
 
-            st.write(response.text)
+                Include:
+                - Breakfast
+                - Lunch
+                - Snacks
+                - Dinner
+                - Calories per meal
+                - Health tips
+                """
 
-            users[st.session_state.username]["history"].append(response.text)
-            save_users(users)
+                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                response = model.generate_content(prompt)
 
+                st.success("AI Plan Generated ✅")
+                st.write(response.text)
+
+                users[st.session_state.username]["history"].append(response.text)
+                save_users(users)
+
+            except Exception as e:
+                st.error("AI Error")
+                st.write(str(e))
         else:
-            st.error("API Key Missing")
+            st.error("API Key not configured in Streamlit Secrets.")
+
+# ---------------- WEEKLY PLAN ----------------
+with tabs[1]:
+    if st.button("Generate Weekly AI Plan"):
+        if api_key:
+            try:
+                prompt = f"""
+                Create a structured 7-day Indian meal plan.
+                Calories Target: {round(calories)}
+                Preferences: {food_pref}
+                Restrictions: {diet_restrict}
+                """
+
+                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                response = model.generate_content(prompt)
+
+                st.success("Weekly Plan Generated ✅")
+                st.write(response.text)
+
+            except Exception as e:
+                st.error("AI Error")
+                st.write(str(e))
+        else:
+            st.error("API Key not configured.")
 
 # ---------------- CALORIE CHART ----------------
-with tab2:
-    st.subheader("Calorie Distribution")
+with tabs[2]:
+    st.subheader("Calorie Breakdown")
 
     breakfast = calories * 0.25
     lunch = calories * 0.35
@@ -116,37 +159,22 @@ with tab2:
     labels = ["Breakfast", "Lunch", "Snacks", "Dinner"]
     values = [breakfast, lunch, snacks, dinner]
 
-    plt.figure()
+    fig = plt.figure()
     plt.pie(values, labels=labels, autopct="%1.1f%%")
-    st.pyplot(plt)
-
-# ---------------- WEEKLY PLANNER ----------------
-with tab3:
-    if st.button("Generate Weekly Plan"):
-        if api_key:
-            prompt = f"""
-            Create a 7-day Indian meal plan table format.
-            Calories Target: {round(calories)}
-            Preferences: {food_pref}
-            Restrictions: {diet_restrict}
-            """
-
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt)
-
-            st.write(response.text)
+    st.pyplot(fig)
 
 # ---------------- HISTORY ----------------
-with tab4:
-    st.subheader("Previous Meal Plans")
+with tabs[3]:
+    st.subheader("Your Previous Meal Plans")
 
     history = users[st.session_state.username]["history"]
+
     if history:
         for i, item in enumerate(history):
-            st.write(f"### Plan {i+1}")
+            st.markdown(f"### Plan {i+1}")
             st.write(item)
     else:
-        st.info("No history available.")
+        st.info("No meal plans generated yet.")
 
 # ---------------- LOGOUT ----------------
 if st.sidebar.button("Logout"):
