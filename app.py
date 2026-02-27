@@ -76,13 +76,45 @@ st.sidebar.success(f"BMI: {round(bmi,2)} ({category})")
 tab1, tab2, tab3 = st.tabs(["🍽 Meal Plan", "📸 Food Analysis", "📊 Insights"])
 
 # ---------------- MEAL PLAN ----------------
-with tab1:
-    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    calories = 22 * weight
-    st.subheader("🔥 Estimated Daily Calories")
-    st.write(f"### {round(calories)} kcal/day")
-    st.markdown("</div>", unsafe_allow_html=True)
+peal Plan")
 
+    if api_key:
+        if st.button("Generate AI Meal Plan 🍽"):
+            with st.spinner("Generating your smart meal plan..."):
+
+                prompt = f"""
+                Create a detailed one-day Indian meal plan.
+                User details:
+                Age: {age}
+                Weight: {weight} kg
+                Height: {height} cm
+                BMI: {round(bmi,2)} ({category})
+                Medical Conditions: {medical}
+                Food Preferences: {food_pref}
+                Dietary Restrictions: {diet_restrict}
+                Daily Calories Target: {round(calories)} kcal
+
+                Provide:
+                - Breakfast
+                - Lunch
+                - Snacks
+                - Dinner
+                - Approximate calories per meal
+                - Health tips
+                """
+
+                model = genai.GenerativeModel("gemini-1.5-flash")
+                response = model.generate_content(prompt)
+
+                st.success("Meal Plan Generated Successfully ✅")
+                st.write(response.text)
+
+                # Store for PDF
+                st.session_state["meal_plan"] = response.text
+    else:
+        st.error("API Key not configured.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
 # ---------------- FOOD ANALYSIS ----------------
 with tab2:
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
