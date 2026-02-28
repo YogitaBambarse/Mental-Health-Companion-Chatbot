@@ -61,7 +61,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 # IMPORTANT: Correct model path for Cloud
-model = genai.GenerativeModel("models/gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 # ---------------- USER STORAGE ----------------
 USER_FILE = "users.json"
