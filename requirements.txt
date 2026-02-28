@@ -1,6 +1,4 @@
 streamlit
-google-genai
+google-generativeai
 python-dotenv
 matplotlib
-reportlab
-Pillow
