@@ -17,46 +17,51 @@ st.set_page_config(
 st.markdown("""
 <style>
 .main {
-    background-color: #f5f7fa;
+    background-color: #f4f6f9;
 }
 .header-box {
-    background: linear-gradient(90deg, #4CAF50, #2E7D32);
+    background: linear-gradient(90deg, #4CAF50, #1B5E20);
     padding: 25px;
     border-radius: 15px;
     color: white;
     text-align: center;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: bold;
 }
 .card {
     background: white;
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
 }
 .stButton>button {
-    background-color: #2E7D32;
+    background-color: #1B5E20;
     color: white;
     border-radius: 10px;
     height: 45px;
     font-weight: bold;
 }
 .stButton>button:hover {
-    background-color: #1B5E20;
+    background-color: #2E7D32;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- LOAD ENV ----------------
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
+# ---------------- LOAD API KEY (Cloud + Local) ----------------
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]  # Streamlit Cloud
+except:
+    load_dotenv()  # Local
+    api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    st.error("GEMINI_API_KEY not found.")
+    st.error("❌ GEMINI_API_KEY not found. Set it in Streamlit Secrets or .env file.")
     st.stop()
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-1.5-flash")
+
+# IMPORTANT: Correct model path for Cloud
+model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # ---------------- USER STORAGE ----------------
 USER_FILE = "users.json"
@@ -76,6 +81,7 @@ def save_users(users):
 
 users = load_users()
 
+# ---------------- SESSION INIT ----------------
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -150,30 +156,66 @@ def check_cooldown():
 # ---------------- DAILY PLAN ----------------
 with tabs[0]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
+
     if st.button("Generate Daily Plan"):
         check_cooldown()
-        prompt = f"Indian diet plan. Age:{age}, W:{weight}, BMI:{round(bmi,2)}, Calories:{calories}"
-        response = model.generate_content(prompt)
-        result = response.text
-        st.write(result)
-        users[st.session_state.username]["history"].append(result)
-        save_users(users)
+
+        prompt = f"""
+        Create simple Indian diet plan.
+        Age:{age}, Weight:{weight}, BMI:{round(bmi,2)}, Calories:{calories}
+        Medical:{medical}
+        Food:{food_pref}
+        Restriction:{diet_restrict}
+        """
+
+        try:
+            response = model.generate_content(prompt)
+            result = response.text
+
+            st.success("✅ Daily Plan Generated")
+            st.write(result)
+
+            users[st.session_state.username]["history"].append(result)
+            save_users(users)
+
+        except Exception as e:
+            st.error("AI Error")
+            st.write(str(e))
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- WEEKLY PLAN ----------------
 with tabs[1]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
+
     if st.button("Generate Weekly Plan"):
         check_cooldown()
-        prompt = f"7-day Indian diet plan. Age:{age}, W:{weight}, BMI:{round(bmi,2)}, Calories:{calories}"
-        response = model.generate_content(prompt)
-        result = response.text
-        st.write(result)
-        users[st.session_state.username]["history"].append(result)
-        save_users(users)
+
+        prompt = f"""
+        Create 7-day Indian diet plan.
+        Age:{age}, Weight:{weight}, BMI:{round(bmi,2)}, Calories:{calories}
+        Medical:{medical}
+        Food:{food_pref}
+        Restriction:{diet_restrict}
+        """
+
+        try:
+            response = model.generate_content(prompt)
+            result = response.text
+
+            st.success("✅ Weekly Plan Generated")
+            st.write(result)
+
+            users[st.session_state.username]["history"].append(result)
+            save_users(users)
+
+        except Exception as e:
+            st.error("AI Error")
+            st.write(str(e))
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------------- CHART ----------------
+# ---------------- CALORIE CHART ----------------
 with tabs[2]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
 
@@ -190,13 +232,16 @@ with tabs[2]:
 # ---------------- HISTORY ----------------
 with tabs[3]:
     st.markdown('<div class="card">', unsafe_allow_html=True)
+
     history = users[st.session_state.username]["history"]
+
     if history:
         for i, plan in enumerate(history):
             st.markdown(f"### Plan {i+1}")
             st.write(plan)
     else:
         st.info("No plans generated yet.")
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------- LOGOUT ----------------
