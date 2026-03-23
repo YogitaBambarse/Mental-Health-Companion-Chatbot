@@ -1,24 +1,24 @@
 import streamlit as st
 import json
 import matplotlib.pyplot as plt
+import requests
 import os
-from openai import OpenAI
 
 # ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------- API (SECURE) ----------
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# ---------- HUGGINGFACE API ----------
+API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
 
 def get_ai_response(prompt):
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "You are a professional fitness coach. Give structured, practical advice."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    return response.choices[0].message.content
+    payload = {"inputs": prompt}
+    response = requests.post(API_URL, headers=headers, json=payload)
+
+    try:
+        return response.json()[0]["generated_text"]
+    except:
+        return "❌ Error in AI response. Try again!"
 
 # ---------- UI STYLE ----------
 st.markdown("""
@@ -53,9 +53,9 @@ with tab1:
             st.success(f"Plan for: {goal}")
             st.write("""
 🍳 Breakfast: Oats + Eggs  
-🍛 Lunch: Rice + Chicken + Veggies  
+🍛 Lunch: Rice + Dal + Veggies  
 🍲 Dinner: Roti + Paneer  
-🥜 Snacks: Nuts & Fruits  
+🥜 Snacks: Fruits & Nuts  
 """)
         else:
             st.warning("Enter your goal")
@@ -63,7 +63,7 @@ with tab1:
     st.subheader("Your Health Profile")
 
     profile = {
-        "goal": "Muscle gain",
+        "goal": "Fitness",
         "dietPreference": "Veg",
         "condition": "Beginner",
         "preferences": ["High protein", "Low sugar"]
@@ -125,22 +125,19 @@ with tab2:
 
             st.pyplot(plt)
         except:
-            st.error("Please enter valid numbers separated by commas")
+            st.error("Enter valid numbers")
 
 # ---------- TAB 3 : AI COACH ----------
 with tab3:
-    st.subheader("AI Fitness Coach")
+    st.subheader("AI Fitness Coach (Free AI)")
 
     question = st.text_area("Ask your fitness coach")
 
     if st.button("Get AI Advice"):
         if question:
             with st.spinner("Thinking..."):
-                try:
-                    reply = get_ai_response(question)
-                    st.write("### 🧠 AI Coach Says:")
-                    st.write(reply)
-                except Exception as e:
-                    st.error("Error fetching AI response. Check API key.")
+                reply = get_ai_response(question)
+                st.write("### 🧠 AI Coach Says:")
+                st.success(reply)
         else:
             st.warning("Enter a question")
