@@ -7,7 +7,7 @@ import os
 # ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------- AI FUNCTION (FIXED) ----------
+# ---------- HUGGING FACE AI ----------
 def get_ai_response(prompt):
     API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-large"
     headers = {
@@ -15,13 +15,15 @@ def get_ai_response(prompt):
     }
 
     try:
-        response = requests.post(
-            API_URL,
-            headers=headers,
-            json={"inputs": prompt}
-        )
+        response = requests.post(API_URL, headers=headers, json={"inputs": prompt})
 
-        data = response.json()
+        if not response.text:
+            return "⚠️ Empty response. Try again."
+
+        try:
+            data = response.json()
+        except:
+            return "⚠️ Model loading... try again ⏳"
 
         if isinstance(data, list):
             return data[0].get("generated_text", "No response")
@@ -30,10 +32,10 @@ def get_ai_response(prompt):
             if "error" in data:
                 return f"❌ HF Error: {data['error']}"
             else:
-                return "❌ Unexpected response"
+                return "⚠️ Unexpected response"
 
         else:
-            return "❌ Unknown response"
+            return "⚠️ Unknown response"
 
     except Exception as e:
         return f"❌ Error: {str(e)}"
@@ -58,13 +60,13 @@ st.title("🧠 AI Personal Health & Fitness Assistant")
 st.caption("Smart nutrition • Intelligent fitness • Personalized health insights")
 
 # ---------- TABS ----------
-tab1, tab2, tab3 = st.tabs(["🍽 Meal Planning", "📊 Health Metrics", "🏋️ AI Fitness Coach"])
+tab1, tab2, tab3, tab4 = st.tabs(["🍽 Meal Planning", "📊 Health Metrics", "🏋️ AI Fitness Coach", "📅 Weekly Plan"])
 
 # ---------- TAB 1 ----------
 with tab1:
-    st.subheader("Personalised Meal Planning")
+    st.subheader("Meal Planning")
 
-    goal = st.text_area("Describe your goal")
+    goal = st.text_area("Enter your goal")
 
     if st.button("Generate Meal Plan"):
         if goal:
@@ -76,83 +78,94 @@ with tab1:
 🥜 Snacks: Fruits & Nuts  
 """)
         else:
-            st.warning("Enter your goal")
-
-    st.subheader("Your Health Profile")
-
-    profile = {
-        "goal": "Fitness",
-        "dietPreference": "Veg",
-        "condition": "Beginner",
-        "preferences": ["High protein", "Low sugar"]
-    }
-
-    st.code(json.dumps(profile, indent=2), language="json")
+            st.warning("Enter goal")
 
 # ---------- TAB 2 ----------
 with tab2:
     st.subheader("Health Metrics")
 
-    col1, col2 = st.columns(2)
+    height = st.number_input("Height (cm)", 150, 220, 170)
+    weight = st.number_input("Weight (kg)", 40, 120, 70)
+    age = st.number_input("Age", 10, 80, 25)
 
-    with col1:
-        height = st.number_input("Height (cm)", 150, 220, 170)
-        weight = st.number_input("Weight (kg)", 40, 120, 70)
-        age = st.number_input("Age", 10, 80, 25)
+    def bmi(w, h):
+        return w / ((h/100)**2)
 
-    with col2:
-        gender = st.selectbox("Gender", ["Male", "Female"])
-        activity = st.selectbox("Activity Level", ["Low", "Moderate", "High"])
+    if st.button("Calculate"):
+        b = bmi(weight, height)
 
-    def bmi_calc(w, h):
-        return w / ((h/100) ** 2)
-
-    def calorie_calc(w, h, a):
-        return 10*w + 6.25*h - 5*a + 5
-
-    if st.button("Calculate Metrics"):
-        bmi = bmi_calc(weight, height)
-        cal = calorie_calc(weight, height, age)
-
-        if bmi < 18.5:
-            st.warning(f"BMI: {round(bmi,2)} (Underweight)")
-        elif bmi < 25:
-            st.success(f"BMI: {round(bmi,2)} (Normal)")
+        if b < 18.5:
+            st.warning(f"BMI: {round(b,2)} (Underweight)")
+        elif b < 25:
+            st.success(f"BMI: {round(b,2)} (Normal)")
         else:
-            st.error(f"BMI: {round(bmi,2)} (Overweight)")
+            st.error(f"BMI: {round(b,2)} (Overweight)")
 
-        st.info(f"Calories: {int(cal)} kcal")
+    st.subheader("📊 Progress Graph")
 
-    # GRAPH
-    st.subheader("📊 Progress Tracker")
-
-    weights = st.text_input("Enter weights", "70,69,68,67")
+    weights = st.text_input("Enter weights", "70,69,68")
 
     if st.button("Show Graph"):
-        try:
-            data = list(map(float, weights.split(",")))
-
-            plt.figure()
-            plt.plot(data, marker='o')
-            plt.xlabel("Days")
-            plt.ylabel("Weight")
-            plt.title("Progress")
-
-            st.pyplot(plt)
-        except:
-            st.error("Invalid input")
+        data = list(map(float, weights.split(",")))
+        plt.figure()
+        plt.plot(data, marker='o')
+        st.pyplot(plt)
 
 # ---------- TAB 3 ----------
 with tab3:
-    st.subheader("AI Fitness Coach (FREE)")
+    st.subheader("AI Fitness Coach (HuggingFace)")
 
-    q = st.text_area("Ask your question")
+    q = st.text_area("Ask something")
 
     if st.button("Get Advice"):
         if q:
             with st.spinner("Thinking..."):
                 ans = get_ai_response(q)
-                st.write("### 🧠 AI Coach Says:")
+                st.write("### 🧠 AI Says:")
                 st.success(ans)
         else:
             st.warning("Enter question")
+
+# ---------- TAB 4 ----------
+with tab4:
+    st.subheader("📅 Weekly Plan")
+
+    goal = st.selectbox("Goal", ["Weight Loss", "Muscle Gain", "General Fitness"])
+
+    if st.button("Generate Weekly Plan"):
+
+        if goal == "Weight Loss":
+            st.success("🔥 Weight Loss Plan")
+            st.write("""
+Mon: Cardio  
+Tue: Strength  
+Wed: Running  
+Thu: Workout  
+Fri: HIIT  
+Sat: Yoga  
+Sun: Rest  
+""")
+
+        elif goal == "Muscle Gain":
+            st.success("💪 Muscle Plan")
+            st.write("""
+Mon: Chest  
+Tue: Back  
+Wed: Legs  
+Thu: Shoulder  
+Fri: Full Body  
+Sat: Cardio  
+Sun: Rest  
+""")
+
+        else:
+            st.success("✨ Fitness Plan")
+            st.write("""
+Mon: Cardio  
+Tue: Strength  
+Wed: Yoga  
+Thu: Cardio  
+Fri: Strength  
+Sat: Outdoor  
+Sun: Rest  
+""")
