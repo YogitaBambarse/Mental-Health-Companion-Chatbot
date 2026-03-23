@@ -3,42 +3,53 @@ import json
 import matplotlib.pyplot as plt
 import requests
 import os
+import time
 
 # ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------- HUGGING FACE AI ----------
+# ---------- SIDEBAR ----------
+st.sidebar.header("👤 Your Profile")
+
+height = st.sidebar.number_input("Height (cm)", 150, 220, 170)
+weight = st.sidebar.number_input("Weight (kg)", 40, 120, 70)
+age = st.sidebar.number_input("Age", 10, 80, 25)
+gender = st.sidebar.selectbox("Gender", ["Male", "Female"])
+activity = st.sidebar.selectbox("Activity Level", ["Low", "Moderate", "High"])
+
+# ---------- HUGGING FACE AI (AUTO RETRY FIX) ----------
 def get_ai_response(prompt):
     API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-large"
-    headers = {
-        "Authorization": f"Bearer {os.getenv('HF_API_KEY')}"
-    }
+    headers = {"Authorization": f"Bearer {os.getenv('HF_API_KEY')}"}
 
-    try:
-        response = requests.post(API_URL, headers=headers, json={"inputs": prompt})
-
-        if not response.text:
-            return "⚠️ Empty response. Try again."
-
+    for i in range(2):  # retry 2 times
         try:
+            response = requests.post(API_URL, headers=headers, json={"inputs": prompt})
+
+            if not response.text:
+                return "⚠️ Empty response. Try again."
+
             data = response.json()
-        except:
-            return "⚠️ Model loading... try again ⏳"
 
-        if isinstance(data, list):
-            return data[0].get("generated_text", "No response")
+            if isinstance(data, list):
+                return data[0].get("generated_text", "No response")
 
-        elif isinstance(data, dict):
-            if "error" in data:
-                return f"❌ HF Error: {data['error']}"
+            elif isinstance(data, dict):
+                if "error" in data:
+                    if "loading" in data["error"].lower():
+                        time.sleep(5)
+                        continue
+                    return f"❌ {data['error']}"
+                else:
+                    return "⚠️ Unexpected response"
+
             else:
-                return "⚠️ Unexpected response"
+                return "⚠️ Unknown response"
 
-        else:
-            return "⚠️ Unknown response"
+        except Exception as e:
+            return f"❌ Error: {str(e)}"
 
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
+    return "⚠️ Model still loading, try again ⏳"
 
 # ---------- UI STYLE ----------
 st.markdown("""
@@ -84,10 +95,6 @@ with tab1:
 with tab2:
     st.subheader("Health Metrics")
 
-    height = st.number_input("Height (cm)", 150, 220, 170)
-    weight = st.number_input("Weight (kg)", 40, 120, 70)
-    age = st.number_input("Age", 10, 80, 25)
-
     def bmi(w, h):
         return w / ((h/100)**2)
 
@@ -106,14 +113,20 @@ with tab2:
     weights = st.text_input("Enter weights", "70,69,68")
 
     if st.button("Show Graph"):
-        data = list(map(float, weights.split(",")))
-        plt.figure()
-        plt.plot(data, marker='o')
-        st.pyplot(plt)
+        try:
+            data = list(map(float, weights.split(",")))
+            plt.figure()
+            plt.plot(data, marker='o')
+            plt.xlabel("Days")
+            plt.ylabel("Weight")
+            plt.title("Progress")
+            st.pyplot(plt)
+        except:
+            st.error("Invalid input")
 
 # ---------- TAB 3 ----------
 with tab3:
-    st.subheader("AI Fitness Coach (HuggingFace)")
+    st.subheader("AI Fitness Coach")
 
     q = st.text_area("Ask something")
 
