@@ -9,7 +9,7 @@ st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
 # ---------- AI FUNCTION (FIXED) ----------
 def get_ai_response(prompt):
-    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+    API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-large"
     headers = {
         "Authorization": f"Bearer {os.getenv('HF_API_KEY')}"
     }
@@ -23,7 +23,6 @@ def get_ai_response(prompt):
 
         data = response.json()
 
-        # Handle different response formats
         if isinstance(data, list):
             return data[0].get("generated_text", "No response")
 
