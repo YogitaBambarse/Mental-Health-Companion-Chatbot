@@ -1,250 +1,120 @@
 import streamlit as st
-import google.generativeai as genai
-from dotenv import load_dotenv
-import os
 import json
-import matplotlib.pyplot as plt
-import time
 
-# ---------------- PAGE CONFIG ----------------
-st.set_page_config(
-    page_title="AI Health Companion",
-    page_icon="💪",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------------- CUSTOM CSS ----------------
+# ---------- UI STYLE ----------
 st.markdown("""
 <style>
-.main {
-    background-color: #f4f6f9;
-}
-.header-box {
-    background: linear-gradient(90deg, #4CAF50, #1B5E20);
-    padding: 25px;
-    border-radius: 15px;
+body {
+    background-color: #0E1117;
     color: white;
-    text-align: center;
-    font-size: 28px;
-    font-weight: bold;
-}
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0px 4px 12px rgba(0,0,0,0.08);
 }
 .stButton>button {
-    background-color: #1B5E20;
+    background-color: #FF4B4B;
     color: white;
     border-radius: 10px;
-    height: 45px;
-    font-weight: bold;
-}
-.stButton>button:hover {
-    background-color: #2E7D32;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------- LOAD API KEY (Cloud + Local) ----------------
-try:
-    api_key = st.secrets["GEMINI_API_KEY"]  # Streamlit Cloud
-except:
-    load_dotenv()  # Local
-    api_key = os.getenv("GEMINI_API_KEY")
+# ---------- TITLE ----------
+st.title("🧠 AI Personal Health & Fitness Assistant")
+st.caption("Smart nutrition • Intelligent fitness • Personalized health insights")
 
-if not api_key:
-    st.error("❌ GEMINI_API_KEY not found. Set it in Streamlit Secrets or .env file.")
-    st.stop()
+# ---------- TABS ----------
+tab1, tab2, tab3 = st.tabs(["🍽 Meal Planning", "📊 Health Metrics", "🏋️ AI Fitness Coach"])
 
-genai.configure(api_key=api_key)
+# ---------- TAB 1 : MEAL PLANNING ----------
+with tab1:
+    st.subheader("Personalised Meal Planning")
 
-# IMPORTANT: Correct model path for Cloud
-model = genai.GenerativeModel("gemini-1.0-pro")
+    st.write("### Your Current Needs")
+    goal = st.text_area("Describe your goal (e.g., muscle gain, fat loss, etc.)")
 
-# ---------------- USER STORAGE ----------------
-USER_FILE = "users.json"
+    if st.button("Generate Personalised Meal Plan"):
+        if goal:
+            st.success(f"Meal plan generated for: {goal}")
+            st.write("""
+            🍳 Breakfast: Oats + Eggs  
+            🍛 Lunch: Rice + Chicken + Veggies  
+            🍲 Dinner: Roti + Paneer  
+            🥜 Snacks: Nuts & Fruits  
+            """)
+        else:
+            st.warning("Please enter your goal")
 
-def load_users():
-    if os.path.exists(USER_FILE):
-        try:
-            with open(USER_FILE, "r") as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
+    st.write("### Your Health Profile")
 
-def save_users(users):
-    with open(USER_FILE, "w") as f:
-        json.dump(users, f)
+    profile = {
+        "goal": "Muscle gain",
+        "dietPreference": "Veg",
+        "condition": "Beginner",
+        "preferences": ["High protein", "Low sugar"]
+    }
 
-users = load_users()
+    st.code(json.dumps(profile, indent=2), language="json")
 
-# ---------------- SESSION INIT ----------------
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+# ---------- TAB 2 : HEALTH METRICS ----------
+with tab2:
+    st.subheader("Health Metrics and Calorie Calculator")
 
-if "last_request" not in st.session_state:
-    st.session_state.last_request = 0
+    col1, col2 = st.columns(2)
 
-# ---------------- LOGIN PAGE ----------------
-if not st.session_state.logged_in:
-
-    st.markdown('<div class="header-box">🤖 AI Health Companion</div>', unsafe_allow_html=True)
-    st.write("")
-
-    col1, col2, col3 = st.columns([1,2,1])
+    with col1:
+        height = st.number_input("Height (cm)", value=170)
+        weight = st.number_input("Weight (kg)", value=70)
+        age = st.number_input("Age", value=25)
 
     with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        activity = st.selectbox("Activity Level", ["Low", "Moderate", "High"])
 
-        option = st.radio("Select Option", ["Login", "Register"])
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
+    def calculate_bmi(weight, height):
+        h = height / 100
+        return weight / (h * h)
 
-        if st.button("Submit"):
-            if option == "Register":
-                if username in users:
-                    st.warning("Username already exists.")
-                else:
-                    users[username] = {"password": password, "history": []}
-                    save_users(users)
-                    st.success("Registered successfully. Please login.")
-            else:
-                if username in users and users[username]["password"] == password:
-                    st.session_state.logged_in = True
-                    st.session_state.username = username
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials")
+    def calculate_calories(weight, height, age):
+        return 10*weight + 6.25*height - 5*age + 5
 
-        st.markdown('</div>', unsafe_allow_html=True)
+    if st.button("Calculate health metrics"):
+        bmi = calculate_bmi(weight, height)
+        calories = calculate_calories(weight, height, age)
 
-    st.stop()
+        st.subheader("Your Health Results")
 
-# ---------------- MAIN HEADER ----------------
-st.markdown('<div class="header-box">💪 Your Personal AI Diet Planner</div>', unsafe_allow_html=True)
-st.write("")
+        if bmi < 18.5:
+            st.warning(f"BMI: {round(bmi,2)} (Underweight)")
+        elif bmi < 25:
+            st.success(f"BMI: {round(bmi,2)} (Normal weight)")
+        else:
+            st.error(f"BMI: {round(bmi,2)} (Overweight)")
 
-# ---------------- SIDEBAR ----------------
-st.sidebar.header("👤 User Details")
+        st.info(f"Daily Calories: {int(calories)} kcal")
 
-weight = st.sidebar.number_input("Weight (kg)", 30, 150, 60)
-height = st.sidebar.number_input("Height (cm)", 120, 210, 165)
-age = st.sidebar.number_input("Age", 10, 80, 22)
+        st.success("👉 Maintain current intake to keep your weight stable.")
 
-medical = st.sidebar.text_input("Medical Conditions", "None")
-food_pref = st.sidebar.selectbox("Food Preference", ["Veg", "Non-Veg", "Vegan"])
-diet_restrict = st.sidebar.text_input("Dietary Restrictions", "None")
+# ---------- TAB 3 : AI FITNESS COACH ----------
+with tab3:
+    st.subheader("AI Fitness Coach")
 
-bmi = weight / ((height/100)**2)
-calories = int(22 * weight)
+    st.warning("⚠️ If you have not calculated your BMI, please do it in 'Health Metrics' tab")
 
-st.sidebar.success(f"📊 BMI: {round(bmi,2)}")
-st.sidebar.info(f"🔥 Target Calories: {calories} kcal")
+    question = st.text_area("Ask your fitness coach")
 
-tabs = st.tabs(["🍽 Daily Plan", "📅 Weekly Plan", "📊 Calorie Chart", "📜 History"])
+    if st.button("Get Coaching Advice"):
+        if question:
+            st.write("### 🧠 Your AI Coach Says:")
 
-# ---------------- COOLDOWN ----------------
-def check_cooldown():
-    if time.time() - st.session_state.last_request < 15:
-        st.warning("Please wait 15 seconds before next request.")
-        st.stop()
-    st.session_state.last_request = time.time()
+            st.write("""
+Hello! Based on your goal, here’s your plan:
 
-# ---------------- DAILY PLAN ----------------
-with tabs[0]:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+1. Do strength training 4x/week  
+2. Add cardio on weekends  
+3. Maintain high protein diet  
+4. Stay consistent for 3 months  
 
-    if st.button("Generate Daily Plan"):
-        check_cooldown()
-
-        prompt = f"""
-        Create simple Indian diet plan.
-        Age:{age}, Weight:{weight}, BMI:{round(bmi,2)}, Calories:{calories}
-        Medical:{medical}
-        Food:{food_pref}
-        Restriction:{diet_restrict}
-        """
-
-        try:
-            response = model.generate_content(prompt)
-            result = response.text
-
-            st.success("✅ Daily Plan Generated")
-            st.write(result)
-
-            users[st.session_state.username]["history"].append(result)
-            save_users(users)
-
-        except Exception as e:
-            st.error("AI Error")
-            st.write(str(e))
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- WEEKLY PLAN ----------------
-with tabs[1]:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    if st.button("Generate Weekly Plan"):
-        check_cooldown()
-
-        prompt = f"""
-        Create 7-day Indian diet plan.
-        Age:{age}, Weight:{weight}, BMI:{round(bmi,2)}, Calories:{calories}
-        Medical:{medical}
-        Food:{food_pref}
-        Restriction:{diet_restrict}
-        """
-
-        try:
-            response = model.generate_content(prompt)
-            result = response.text
-
-            st.success("✅ Weekly Plan Generated")
-            st.write(result)
-
-            users[st.session_state.username]["history"].append(result)
-            save_users(users)
-
-        except Exception as e:
-            st.error("AI Error")
-            st.write(str(e))
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- CALORIE CHART ----------------
-with tabs[2]:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    labels = ["Breakfast", "Lunch", "Snacks", "Dinner"]
-    values = [calories*0.25, calories*0.35, calories*0.15, calories*0.25]
-
-    fig = plt.figure()
-    plt.pie(values, labels=labels, autopct="%1.1f%%")
-    plt.title("Calorie Distribution")
-    st.pyplot(fig)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- HISTORY ----------------
-with tabs[3]:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    history = users[st.session_state.username]["history"]
-
-    if history:
-        for i, plan in enumerate(history):
-            st.markdown(f"### Plan {i+1}")
-            st.write(plan)
-    else:
-        st.info("No plans generated yet.")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ---------------- LOGOUT ----------------
-if st.sidebar.button("Logout"):
-    st.session_state.logged_in = False
-    st.rerun()
+You’ll see great results! 💪
+            """)
+        else:
+            st.warning("Please enter a question")
