@@ -7,7 +7,7 @@ from openai import OpenAI
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
 # ---------- API ----------
-client = OpenAI(api_key="YOUR_API_KEY")   # <-- paste your key here
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))   # <-- paste your key here
 
 def get_ai_response(prompt):
     response = client.chat.completions.create(
