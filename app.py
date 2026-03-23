@@ -6,7 +6,7 @@ import time
 # ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------- SIDEBAR (PROFILE) ----------
+# ---------- SIDEBAR ----------
 st.sidebar.header("👤 Your Profile")
 
 age = st.sidebar.number_input("Age", 10, 80, 25)
@@ -43,94 +43,82 @@ def get_ai_response(prompt):
     except:
         pass
 
-    # ---------- FALLBACK ----------
-    return "⚠️ Using smart local suggestions (AI temporarily unavailable)"
+    # fallback
+    return "⚠️ AI busy... showing basic suggestion:\n- Stay active\n- Eat healthy\n- Stay hydrated 💪"
 
 # ---------- TITLE ----------
 st.title("🧠 AI Personal Health & Fitness Assistant")
 st.caption("Smart nutrition • Intelligent fitness • Personalized health insights")
 
 # ---------- TABS ----------
-tab1, tab2, tab3 = st.tabs(["🍽 Meal Plan", "🍎 Food Analysis", "📊 Health Insights"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "🍽 Meal Plan",
+    "🍎 Food Analysis",
+    "🏋️ AI Coach",
+    "📊 Health Insights"
+])
 
-# ---------- TAB 1 : MEAL PLAN ----------
+# ---------- TAB 1 ----------
 with tab1:
-    st.subheader("🍽 Personalized Meal Plan")
+    st.subheader("Meal Plan")
 
     if st.button("Generate Plan"):
-
         if goal == "Weight Loss":
             st.success("🔥 Weight Loss Diet")
-            st.write("""
-Breakfast: Oats + Fruits  
-Lunch: Dal + Roti + Salad  
-Dinner: Soup + Veggies  
-Snacks: Nuts  
-""")
+            st.write("Oats • Salad • Soup • Fruits")
 
         elif goal == "Muscle Gain":
             st.success("💪 Muscle Gain Diet")
-            st.write("""
-Breakfast: Eggs + Milk  
-Lunch: Rice + Chicken / Paneer  
-Dinner: Roti + Dal  
-Snacks: Protein rich foods  
-""")
+            st.write("Eggs • Rice • Paneer • Milk")
 
         else:
             st.success("✨ Balanced Diet")
-            st.write("""
-Breakfast: Fruits + Milk  
-Lunch: Dal + Rice  
-Dinner: Roti + Veg  
-Snacks: Nuts  
-""")
+            st.write("Dal • Roti • Veg • Fruits")
 
-# ---------- TAB 2 : FOOD ANALYSIS ----------
+# ---------- TAB 2 ----------
 with tab2:
-    st.subheader("🍎 Food Analysis")
+    st.subheader("Food Analysis")
 
-    food = st.text_input("Enter food item (e.g. Pizza, Salad, Burger)")
+    food = st.text_input("Enter food")
 
-    if st.button("Analyze Food"):
+    if st.button("Analyze"):
         if food:
-            prompt = f"Give nutrition analysis of {food} in simple points"
-
+            prompt = f"Give nutrition info of {food}"
             with st.spinner("Analyzing..."):
                 result = get_ai_response(prompt)
-
             st.success(result)
-
         else:
-            st.warning("Enter food item")
+            st.warning("Enter food")
 
-# ---------- TAB 3 : HEALTH INSIGHTS ----------
+# ---------- TAB 3 (COACH BACK) ----------
 with tab3:
-    st.subheader("📊 Health Insights")
+    st.subheader("🏋️ AI Fitness Coach")
+
+    question = st.text_area("Ask your coach")
+
+    if st.button("Get Advice"):
+        if question:
+            with st.spinner("Thinking..."):
+                reply = get_ai_response(question)
+            st.success(reply)
+        else:
+            st.warning("Ask something")
+
+# ---------- TAB 4 ----------
+with tab4:
+    st.subheader("Health Insights")
 
     def bmi(w, h):
         return w / ((h/100)**2)
 
     if st.button("Check Health"):
-
         b = bmi(weight, height)
 
         if b < 18.5:
             st.warning(f"BMI: {round(b,2)} (Underweight)")
-            st.info("Increase calorie intake and protein.")
-
         elif b < 25:
             st.success(f"BMI: {round(b,2)} (Normal)")
-            st.info("Maintain your healthy lifestyle 👍")
-
         else:
             st.error(f"BMI: {round(b,2)} (Overweight)")
-            st.info("Focus on cardio & diet control.")
 
-        st.markdown("### 💡 Suggestions")
-        st.write("""
-- Drink 3-4L water  
-- Exercise regularly  
-- Sleep 7-8 hrs  
-- Avoid junk food  
-""")
+        st.info("Stay active • Eat healthy • Sleep well")
