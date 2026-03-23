@@ -1,13 +1,14 @@
 import streamlit as st
 import json
 import matplotlib.pyplot as plt
+import os
 from openai import OpenAI
 
 # ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
 
-# ---------- API ----------
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))   # <-- paste your key here
+# ---------- API (SECURE) ----------
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def get_ai_response(prompt):
     response = client.chat.completions.create(
@@ -113,15 +114,18 @@ with tab2:
     weights = st.text_input("Enter weights (comma separated)", "70,69,68,67")
 
     if st.button("Show Graph"):
-        weight_list = list(map(float, weights.split(",")))
+        try:
+            weight_list = list(map(float, weights.split(",")))
 
-        plt.figure()
-        plt.plot(weight_list, marker='o')
-        plt.xlabel("Days")
-        plt.ylabel("Weight (kg)")
-        plt.title("Progress")
+            plt.figure()
+            plt.plot(weight_list, marker='o')
+            plt.xlabel("Days")
+            plt.ylabel("Weight (kg)")
+            plt.title("Progress")
 
-        st.pyplot(plt)
+            st.pyplot(plt)
+        except:
+            st.error("Please enter valid numbers separated by commas")
 
 # ---------- TAB 3 : AI COACH ----------
 with tab3:
@@ -132,8 +136,11 @@ with tab3:
     if st.button("Get AI Advice"):
         if question:
             with st.spinner("Thinking..."):
-                reply = get_ai_response(question)
-                st.write("### 🧠 AI Coach Says:")
-                st.write(reply)
+                try:
+                    reply = get_ai_response(question)
+                    st.write("### 🧠 AI Coach Says:")
+                    st.write(reply)
+                except Exception as e:
+                    st.error("Error fetching AI response. Check API key.")
         else:
             st.warning("Enter a question")
