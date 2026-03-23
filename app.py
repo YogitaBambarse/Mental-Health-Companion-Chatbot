@@ -1,7 +1,23 @@
 import streamlit as st
 import json
+import matplotlib.pyplot as plt
+from openai import OpenAI
 
+# ---------- CONFIG ----------
 st.set_page_config(page_title="AI Health Assistant", layout="wide")
+
+# ---------- API ----------
+client = OpenAI(api_key="YOUR_API_KEY")   # <-- paste your key here
+
+def get_ai_response(prompt):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a professional fitness coach. Give structured, practical advice."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content
 
 # ---------- UI STYLE ----------
 st.markdown("""
@@ -29,22 +45,21 @@ tab1, tab2, tab3 = st.tabs(["🍽 Meal Planning", "📊 Health Metrics", "🏋�
 with tab1:
     st.subheader("Personalised Meal Planning")
 
-    st.write("### Your Current Needs")
-    goal = st.text_area("Describe your goal (e.g., muscle gain, fat loss, etc.)")
+    goal = st.text_area("Describe your goal (muscle gain, fat loss, etc.)")
 
-    if st.button("Generate Personalised Meal Plan"):
+    if st.button("Generate Meal Plan"):
         if goal:
-            st.success(f"Meal plan generated for: {goal}")
+            st.success(f"Plan for: {goal}")
             st.write("""
-            🍳 Breakfast: Oats + Eggs  
-            🍛 Lunch: Rice + Chicken + Veggies  
-            🍲 Dinner: Roti + Paneer  
-            🥜 Snacks: Nuts & Fruits  
-            """)
+🍳 Breakfast: Oats + Eggs  
+🍛 Lunch: Rice + Chicken + Veggies  
+🍲 Dinner: Roti + Paneer  
+🥜 Snacks: Nuts & Fruits  
+""")
         else:
-            st.warning("Please enter your goal")
+            st.warning("Enter your goal")
 
-    st.write("### Your Health Profile")
+    st.subheader("Your Health Profile")
 
     profile = {
         "goal": "Muscle gain",
@@ -77,44 +92,48 @@ with tab2:
     def calculate_calories(weight, height, age):
         return 10*weight + 6.25*height - 5*age + 5
 
-    if st.button("Calculate health metrics"):
+    if st.button("Calculate Metrics"):
         bmi = calculate_bmi(weight, height)
         calories = calculate_calories(weight, height, age)
 
-        st.subheader("Your Health Results")
+        st.subheader("Your Results")
 
         if bmi < 18.5:
             st.warning(f"BMI: {round(bmi,2)} (Underweight)")
         elif bmi < 25:
-            st.success(f"BMI: {round(bmi,2)} (Normal weight)")
+            st.success(f"BMI: {round(bmi,2)} (Normal)")
         else:
             st.error(f"BMI: {round(bmi,2)} (Overweight)")
 
         st.info(f"Daily Calories: {int(calories)} kcal")
 
-        st.success("👉 Maintain current intake to keep your weight stable.")
+    # ---------- GRAPH ----------
+    st.subheader("📊 Weight Progress Tracker")
 
-# ---------- TAB 3 : AI FITNESS COACH ----------
+    weights = st.text_input("Enter weights (comma separated)", "70,69,68,67")
+
+    if st.button("Show Graph"):
+        weight_list = list(map(float, weights.split(",")))
+
+        plt.figure()
+        plt.plot(weight_list, marker='o')
+        plt.xlabel("Days")
+        plt.ylabel("Weight (kg)")
+        plt.title("Progress")
+
+        st.pyplot(plt)
+
+# ---------- TAB 3 : AI COACH ----------
 with tab3:
     st.subheader("AI Fitness Coach")
 
-    st.warning("⚠️ If you have not calculated your BMI, please do it in 'Health Metrics' tab")
-
     question = st.text_area("Ask your fitness coach")
 
-    if st.button("Get Coaching Advice"):
+    if st.button("Get AI Advice"):
         if question:
-            st.write("### 🧠 Your AI Coach Says:")
-
-            st.write("""
-Hello! Based on your goal, here’s your plan:
-
-1. Do strength training 4x/week  
-2. Add cardio on weekends  
-3. Maintain high protein diet  
-4. Stay consistent for 3 months  
-
-You’ll see great results! 💪
-            """)
+            with st.spinner("Thinking..."):
+                reply = get_ai_response(question)
+                st.write("### 🧠 AI Coach Says:")
+                st.write(reply)
         else:
-            st.warning("Please enter a question")
+            st.warning("Enter a question")
